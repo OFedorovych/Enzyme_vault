@@ -1,0 +1,136 @@
+name: CI
+on:
+  push:
+    branches:
+      - v[1-9]*
+      - audit/*
+  pull_request:
+    branches:
+      - v[1-9]*
+      - audit/*
+
+env:
+  CACHE_VERSION: '1'
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+jobs:
+  foundry:
+    name: Foundry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 7.8.0
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Set up node
+        uses: actions/setup-node@v2
+        with:
+          cache: pnpm
+          node-version: 16
+
+      - name: Run tests
+        run: forge test
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/10, 2/10, 3/10, 4/10, 5/10, 6/10, 7/10, 8/10, 9/10, 10/10]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 7.8.0
+
+      - name: Set up node
+        uses: actions/setup-node@v2
+        with:
+          cache: pnpm
+          node-version: 16
+
+      - name: Hardhat artifact cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            artifacts
+            cache/solidity-files-cache.json
+          key: artifacts-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ hashFiles('contracts/**/*.sol') }}
+          restore-keys: |
+            artifacts-${{ env.CACHE_VERSION }}-${{ runner.os }}-
+
+      - name: Hardhat fork cache
+        uses: actions/cache@v2
+        with:
+          path: cache/hardhat-network-fork
+          key: fork-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: |
+            fork-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ matrix.shard }}-
+            fork-${{ env.CACHE_VERSION }}-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Compile contracts
+        run: pnpm compile
+
+      - name: Run tests
+        run: pnpm run --filter @enzymefinance/protocol -- test --shard ${{ matrix.shard }} --runInBand
+        env:
+          ETHEREUM_NODE_MAINNET: ${{ secrets.ETHEREUM_NODE_MAINNET }}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 7.8.0
+
+      - name: Set up node
+        uses: actions/setup-node@v2
+        with:
+          cache: pnpm
+          node-version: 16
+
+      - name: Hardhat fork cache
+        uses: actions/cache@v2
+        with:
+          path: cache/hardhat-network-fork
+          key: fork-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            fork-${{ env.CACHE_VERSION }}-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Compile contracts
+        run: pnpm compile
+
+      - name: Check types
+        run: pnpm typecheck
+
+      - name: Check linting
+        run: pnpm lint

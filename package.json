@@ -1,0 +1,51 @@
+{
+  "name": "monorepo",
+  "private": true,
+  "packageManager": "pnpm@7.8.0",
+  "scripts": {
+    "build": "pnpm run --recursive -- build",
+    "compile": "pnpm run --filter @enzymefinance/protocol -- compile",
+    "test": "pnpm run --filter @enzymefinance/protocol -- test --maxWorkers 50%",
+    "prettier": "prettier --cache --check --plugin prettier-plugin-solidity \"**/*.{js,ts,json,md,yml,sol}\"",
+    "eslint": "eslint --cache \"**/*.{js,ts}\"",
+    "solhint": "solhint --max-warnings 0 \"**/*.sol\"",
+    "format": "pnpm prettier --write && pnpm solhint --fix && pnpm run --recursive format",
+    "lint": "pnpm prettier && pnpm solhint && pnpm run --recursive lint",
+    "typecheck": "pnpm run --recursive typecheck",
+    "release": "pnpm build && changeset publish",
+    "changeset:version": "changeset version && pnpm install --lockfile-only",
+    "changeset:publish": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.24.1",
+    "@tsconfig/node16": "^1.0.3",
+    "prettier": "^2.7.1",
+    "prettier-plugin-solidity": "1.0.0-dev.23",
+    "solhint": "3.3.7",
+    "typescript": "^4.7.4"
+  },
+  "resolutions": {
+    "antlr4": "4.9.0"
+  },
+  "description": "![Build Status](../../workflows/CI/badge.svg)",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@enzymefinance/testutils": "^4.0.5",
+    "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/contracts": "^3.4.1",
+    "@openzeppelin/contracts-upgradeable": "^3.4.1-solc-0.7-2",
+    "@uniswap/v3-periphery": "^1.4.1",
+    "chai": "^4.3.6",
+    "dotenv": "^16.0.2",
+    "hardhat": "^2.10.2"
+  }
+}
